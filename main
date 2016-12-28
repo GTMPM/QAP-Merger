@@ -1,0 +1,361 @@
+Private Sub AVFile_Click()
+
+On Error Resume Next
+Dim fd As FileDialog, it
+Dim i As Integer
+Set fd = Application.FileDialog(msoFileDialogFilePicker)
+With fd
+     .InitialFileName = Range("C5").Value
+     .AllowMultiSelect = False
+    If .Show = -1 Then
+    'Record all excel files in the sheet
+        For Each it In .SelectedItems
+            If InStr(Right(it, 4), "xls") > 0 Then
+            Range("C5") = it
+            Range("E5") = ""
+            End If
+        Next
+    End If
+End With
+
+End Sub
+
+------------------------------
+
+Private Sub InputQAP_Click()
+
+On Error Resume Next
+Dim fd As FileDialog, it
+Dim i As Integer
+Set fd = Application.FileDialog(msoFileDialogFilePicker)
+With fd
+     .InitialFileName = Range("C6").Value
+     .AllowMultiSelect = True
+    If .Show = -1 Then
+        i = 11
+        Range("C11:C" & [C65536].End(xlUp).Row).ClearContents
+        Range("E11:E" & [E65536].End(xlUp).Row).ClearContents
+    'Record all excel files in the sheet
+        For Each it In .SelectedItems
+            If InStr(Right(it, 4), "xls") > 0 Then
+            Range("C" & i) = it
+            i = i + 1
+            End If
+        Next
+    End If
+End With
+
+End Sub
+
+------------------------------
+
+Private Sub MergeAll_Click()
+
+On Error Resume Next
+
+    Set AppSheet = ActiveWorkbook
+    
+    'Open AV Distribution Grid
+    Set MyBook1 = Workbooks.Open(Filename:=Range("C5").Value)
+    MyBook1.Application.DisplayAlerts = False
+    MyBook1.SaveAs Filename:=Range("C5").Value
+    MyBook1.Application.DisplayAlerts = True
+    
+    'In case the excel cannot be opened
+    If MyBook1 Is Nothing Then
+        AppSheet.Range("E5") = "The file couldn't be opened."
+    Else
+    'In case the excel is not AV export file
+        If MyBook1.Sheets("Header") Is Nothing Then
+            MyBook1.Close
+            AppSheet.Activate
+            Range("E5") = "I don't think this sheet comes from AV"
+        End If
+    End If
+
+    'Format the table header into QAP style
+    MyBook1.Sheets(1).Rows("1:1").Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
+    MyBook1.Sheets(1).Rows("1:1").Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
+
+Dim i, j, x, y, fw, app, eqt, total As Integer
+Dim address1, address2, address3, address4 As String
+
+    'Open QAP files one by one
+    For i = 11 To [C65536].End(xlUp).Row
+        Set MyBook2 = Workbooks.Open(Filename:=Range("C" & i).Value)
+        If MyBook2 Is Nothing Then
+            AppSheet.Sheets(1).Range("E" & i) = "The file couldn't be opened."
+        Else
+    
+    'Search for the key columns
+            Set rng1t = MyBook2.Sheets(1).Range("3:3").Find(What:="APS", After:=MyBook2.Sheets(1).Cells(3, 1), SearchDirection:=xlNext, LookAt:=xlPart)
+            Set rng2t = MyBook2.Sheets(1).Range("3:3").Find(What:="WEEK", After:=MyBook2.Sheets(1).Cells(3, 1), SearchDirection:=xlNext, LookAt:=xlPart)
+            Set rng3t = MyBook2.Sheets(1).Range("3:3").Find(What:="QTY", After:=MyBook2.Sheets(1).Cells(3, 1), SearchDirection:=xlNext, LookAt:=xlPart)
+            Set rng4t = MyBook2.Sheets(1).Range("3:3").Find(What:="AMT", After:=MyBook2.Sheets(1).Cells(3, 1), SearchDirection:=xlNext, LookAt:=xlPart)
+            
+    'Check whether the sheet is QAP file
+            If rng1t Is Nothing Or rng2t Is Nothing Or rng3t Is Nothing Or rng4t Is Nothing Then
+                MyBook2.Close
+                AppSheet.Activate
+                AppSheet.Sheets(1).Range("E" & i) = "Cannot find key columns in this file."
+            Else
+                MyBook1.Sheets(1).Activate
+    
+    'Copy the QAP headers to AV Distribution file, and add background color
+                x = MyBook1.Sheets(1).Cells(3, Columns.Count).End(xlToLeft).Column
+                MyBook1.Sheets(1).Cells(3, x + 1) = rng1t.Value
+                MyBook1.Sheets(1).Cells(3, x + 1).Select
+                With Selection.Interior
+                    .ThemeColor = xlThemeColorDark1
+                    .TintAndShade = -0.149998474074526
+                End With
+                With Selection
+                    .ColumnWidth = 10
+                End With
+                
+                MyBook1.Sheets(1).Cells(3, x + 2) = rng2t.Value
+                MyBook1.Sheets(1).Cells(3, x + 2).Select
+                With Selection.Interior
+                    .ThemeColor = xlThemeColorDark1
+                    .TintAndShade = -0.149998474074526
+                End With
+                With Selection
+                    .ColumnWidth = 10
+                End With
+
+                MyBook1.Sheets(1).Cells(3, x + 3) = rng3t.Value
+                MyBook1.Sheets(1).Cells(3, x + 3).Select
+                With Selection.Interior
+                    .ThemeColor = xlThemeColorDark1
+                    .TintAndShade = -0.349986266670736
+                End With
+                With Selection.Font
+                    .ThemeColor = xlThemeColorDark1
+                    .TintAndShade = 0
+                End With
+                With Selection
+                    .ColumnWidth = 10
+                End With
+                                
+                MyBook1.Sheets(1).Cells(3, x + 4) = rng4t.Value
+                MyBook1.Sheets(1).Cells(3, x + 4).Select
+                With Selection.Interior
+                    .ThemeColor = xlThemeColorDark1
+                    .TintAndShade = -0.349986266670736
+                End With
+                With Selection.Font
+                    .ThemeColor = xlThemeColorDark1
+                    .TintAndShade = 0
+                End With
+                With Selection
+                    .ColumnWidth = 10
+                End With
+                
+    'Check whether there is cluster name
+                If Not MyBook2.Sheets(1).Cells(1, rng1t.Column).Value Is Nothing Then
+                    MyBook1.Sheets(1).Cells(1, x + 1).Value = MyBook2.Sheets(1).Cells(1, rng1t.Column).Value
+                    MyBook1.Sheets(1).Cells(1, x + 1).Font.Bold = True
+                    MyBook1.Sheets(1).Cells(1, x + 1).Font.Size = 16
+                    MyBook1.Sheets(1).Cells(1, x + 1).Font.Color = -16776961
+                End If
+                    
+    'Find customized SKU and add into AV Distribution file
+                For j = 4 To MyBook2.Sheets(1).[D65536].End(xlUp).Row
+                    Set rng5 = Nothing
+                    Set rng5 = MyBook1.Sheets(1).Range("D:D").Find(What:=MyBook2.Sheets(1).Cells(j, 4).Value, After:=MyBook1.Sheets(1).Cells(3, 4), SearchDirection:=xlNext, LookAt:=xlWhole)
+                    If rng5 Is Nothing Then
+                        y = MyBook1.Sheets(1).Cells(Rows.Count, 4).End(xlUp).Row
+                        MyBook1.Sheets(1).Cells(y + 1, 4) = MyBook2.Sheets(1).Cells(j, 4)
+                        MyBook1.Sheets(1).Cells(y + 1, 2) = MyBook2.Sheets(1).Cells(j, 2)
+                    End If
+                Next j
+
+    'Set VLoopup areas for the 4 key columns
+                Set rng1 = MyBook2.Sheets(1).Range(MyBook2.Sheets(1).Cells(4, 4), MyBook2.Sheets(1).Cells(MyBook2.Sheets(1).[D65536].End(xlUp).Row, rng1t.Column))
+                Set rng2 = MyBook2.Sheets(1).Range(MyBook2.Sheets(1).Cells(4, 4), MyBook2.Sheets(1).Cells(MyBook2.Sheets(1).[D65536].End(xlUp).Row, rng2t.Column))
+                Set rng3 = MyBook2.Sheets(1).Range(MyBook2.Sheets(1).Cells(4, 4), MyBook2.Sheets(1).Cells(MyBook2.Sheets(1).[D65536].End(xlUp).Row, rng3t.Column))
+                Set rng4 = MyBook2.Sheets(1).Range(MyBook2.Sheets(1).Cells(4, 4), MyBook2.Sheets(1).Cells(MyBook2.Sheets(1).[D65536].End(xlUp).Row, rng4t.Column))
+    
+    'VLookup for each product in AV Distribution file
+                For j = 4 To MyBook1.Sheets(1).[D65536].End(xlUp).Row
+                    MyBook1.Sheets(1).Cells(j, x + 1) = Application.WorksheetFunction.VLookup(MyBook1.Sheets(1).Cells(j, 4), rng1, rng1t.Column - 3, 0)
+                    MyBook1.Sheets(1).Cells(j, x + 2) = Application.WorksheetFunction.VLookup(MyBook1.Sheets(1).Cells(j, 4), rng2, rng2t.Column - 3, 0)
+                    MyBook1.Sheets(1).Cells(j, x + 3) = Application.WorksheetFunction.VLookup(MyBook1.Sheets(1).Cells(j, 4), rng3, rng3t.Column - 3, 0)
+                    MyBook1.Sheets(1).Cells(j, x + 4) = Application.WorksheetFunction.VLookup(MyBook1.Sheets(1).Cells(j, 4), rng4, rng4t.Column - 3, 0)
+                    
+                    If InStr(MyBook1.Sheets(1).Cells(j, 2).Value, "AP") > 0 Then
+                        app = app + MyBook1.Sheets(1).Cells(j, x + 3).Value
+                    ElseIf InStr(MyBook1.Sheets(1).Cells(j, 2).Value, "F") > 0 Then
+                        fw = fw + MyBook1.Sheets(1).Cells(j, x + 3).Value
+                    ElseIf InStr(MyBook1.Sheets(1).Cells(j, 2).Value, "EQ") > 0 Then
+                        eqt = eqt + MyBook1.Sheets(1).Cells(j, x + 3).Value
+                    End If
+                Next j
+
+    'Record Apprael, Footwear, Equipment qty and AMT total
+                    MyBook1.Sheets(1).Cells(2, x + 3) = "APP = " & app & "; FTW = " & fw & "; EQT = " & eqt
+                    MyBook1.Sheets(1).Cells(2, x + 3).Select
+                    With Selection
+                        .HorizontalAlignment = xlRight
+                    End With
+                    MyBook1.Sheets(1).Cells(2, x + 4) = Application.WorksheetFunction.Sum(MyBook1.Sheets(1).Range(MyBook1.Sheets(1).Cells(4, x + 4), MyBook1.Sheets(1).Cells(MyBook1.Sheets(1).[D65536].End(xlUp).Row, x + 4)))
+                    MyBook1.Sheets(1).Cells(1, x + 4) = Application.WorksheetFunction.Sum(MyBook1.Sheets(1).Range(MyBook1.Sheets(1).Cells(4, x + 3), MyBook1.Sheets(1).Cells(MyBook1.Sheets(1).[D65536].End(xlUp).Row, x + 3)))
+                    
+    'Add dark grey background to AMT column
+                    MyBook1.Sheets(1).Range(MyBook1.Sheets(1).Cells(3, x + 4), MyBook1.Sheets(1).Cells(MyBook1.Sheets(1).[D65536].End(xlUp).Row, x + 4)).Select
+                    With Selection.Interior
+                        .ThemeColor = xlThemeColorDark1
+                        .TintAndShade = -0.349986266670736
+                    End With
+                    With Selection.Font
+                        .ThemeColor = xlThemeColorDark1
+                        .TintAndShade = 0
+                    End With
+                                        
+    'Loop search, vloopup and format table
+                address1 = rng1t.Address
+                address2 = rng2t.Address
+                address3 = rng3t.Address
+                address4 = rng4t.Address
+                Do
+                    app = 0
+                    fw = 0
+                    eqt = 0
+                    total = 0
+                    
+                    Set rng1t = MyBook2.Worksheets(1).Range("3:3").Find(What:="APS", After:=rng1t, SearchDirection:=xlNext, LookAt:=xlPart)
+                    Set rng2t = MyBook2.Worksheets(1).Range("3:3").Find(What:="SELLING WEEK", After:=rng2t, SearchDirection:=xlNext, LookAt:=xlPart)
+                    Set rng3t = MyBook2.Worksheets(1).Range("3:3").Find(What:="QTY", After:=rng3t, SearchDirection:=xlNext, LookAt:=xlPart)
+                    Set rng4t = MyBook2.Worksheets(1).Range("3:3").Find(What:="AMT", After:=rng4t, SearchDirection:=xlNext, LookAt:=xlPart)
+                    
+                    If rng1t.Address = address1 Then
+                        Exit Do
+                    End If
+                    
+                    Set rng1 = MyBook2.Sheets(1).Range(MyBook2.Sheets(1).Cells(4, 4), MyBook2.Sheets(1).Cells(MyBook2.Sheets(1).[D65536].End(xlUp).Row, rng1t.Column))
+                    Set rng2 = MyBook2.Sheets(1).Range(MyBook2.Sheets(1).Cells(4, 4), MyBook2.Sheets(1).Cells(MyBook2.Sheets(1).[D65536].End(xlUp).Row, rng2t.Column))
+                    Set rng3 = MyBook2.Sheets(1).Range(MyBook2.Sheets(1).Cells(4, 4), MyBook2.Sheets(1).Cells(MyBook2.Sheets(1).[D65536].End(xlUp).Row, rng3t.Column))
+                    Set rng4 = MyBook2.Sheets(1).Range(MyBook2.Sheets(1).Cells(4, 4), MyBook2.Sheets(1).Cells(MyBook2.Sheets(1).[D65536].End(xlUp).Row, rng4t.Column))
+                    
+                    x = MyBook1.Sheets(1).Cells(3, Columns.Count).End(xlToLeft).Column
+                    MyBook1.Sheets(1).Cells(3, x + 1) = rng1t.Value
+                    MyBook1.Sheets(1).Cells(3, x + 1).Select
+                    With Selection.Interior
+                        .ThemeColor = xlThemeColorDark1
+                        .TintAndShade = -0.149998474074526
+                    End With
+                    
+                    MyBook1.Sheets(1).Cells(3, x + 2) = rng2t.Value
+                    MyBook1.Sheets(1).Cells(3, x + 2).Select
+                    With Selection.Interior
+                        .ThemeColor = xlThemeColorDark1
+                        .TintAndShade = -0.149998474074526
+                    End With
+                    
+                    MyBook1.Sheets(1).Cells(3, x + 3) = rng3t.Value
+                    MyBook1.Sheets(1).Cells(3, x + 3).Select
+                    With Selection.Interior
+                        .ThemeColor = xlThemeColorDark1
+                        .TintAndShade = -0.349986266670736
+                    End With
+                    With Selection.Font
+                        .ThemeColor = xlThemeColorDark1
+                        .TintAndShade = 0
+                    End With
+                    
+                    MyBook1.Sheets(1).Cells(3, x + 4) = rng4t.Value
+                    MyBook1.Sheets(1).Cells(3, x + 4).Select
+                    With Selection.Interior
+                        .ThemeColor = xlThemeColorDark1
+                        .TintAndShade = -0.349986266670736
+                    End With
+                    
+                    MyBook1.Sheets(1).Column(x + 1).Select
+                    With Selection
+                        .ColumnWidth = 10
+                    End With
+                    MyBook1.Sheets(1).Column(x + 2).Select
+                    With Selection
+                        .ColumnWidth = 10
+                    End With
+                    MyBook1.Sheets(1).Column(x + 3).Select
+                    With Selection
+                        .ColumnWidth = 10
+                    End With
+                    MyBook1.Sheets(1).Column(x + 4).Select
+                    With Selection
+                        .ColumnWidth = 10
+                    End With
+                    
+    'Check whether there is cluster name
+                    If Not MyBook2.Sheets(1).Cells(1, rng1t.Column).Value Is Nothing Then
+                        MyBook1.Sheets(1).Cells(1, x + 1) = MyBook2.Sheets(1).Cells(1, rng1t.Column).Value
+                        MyBook1.Sheets(1).Cells(1, x + 1).Font.Bold = True
+                        MyBook1.Sheets(1).Cells(1, x + 1).Font.Size = 16
+                        MyBook1.Sheets(1).Cells(1, x + 1).Font.Color = -16776961
+                    End If
+                    
+                    For j = 4 To MyBook1.Sheets(1).[D65536].End(xlUp).Row
+                        MyBook1.Sheets(1).Cells(j, x + 1) = Application.WorksheetFunction.VLookup(MyBook1.Sheets(1).Cells(j, 4), rng1, rng1t.Column - 3, 0)
+                        MyBook1.Sheets(1).Cells(j, x + 2) = Application.WorksheetFunction.VLookup(MyBook1.Sheets(1).Cells(j, 4), rng2, rng2t.Column - 3, 0)
+                        MyBook1.Sheets(1).Cells(j, x + 3) = Application.WorksheetFunction.VLookup(MyBook1.Sheets(1).Cells(j, 4), rng3, rng3t.Column - 3, 0)
+                        MyBook1.Sheets(1).Cells(j, x + 4) = Application.WorksheetFunction.VLookup(MyBook1.Sheets(1).Cells(j, 4), rng4, rng4t.Column - 3, 0)
+                        
+                        If InStr(MyBook1.Sheets(1).Cells(j, 2).Value, "AP") > 0 Then
+                            app = app + MyBook1.Sheets(1).Cells(j, x + 3).Value
+                        ElseIf InStr(MyBook1.Sheets(1).Cells(j, 2).Value, "F") > 0 Then
+                            fw = fw + MyBook1.Sheets(1).Cells(j, x + 3).Value
+                        ElseIf InStr(MyBook1.Sheets(1).Cells(j, 2).Value, "EQ") > 0 Then
+                            eqt = eqt + MyBook1.Sheets(1).Cells(j, x + 3).Value
+                        End If
+                    Next j
+                    
+    'Record Apprael, Footwear, Equipment qty and AMT total
+                    MyBook1.Sheets(1).Cells(2, x + 3) = "APP = " & app & "; FTW = " & fw & "; EQT = " & eqt
+                    MyBook1.Sheets(1).Cells(2, x + 3).Select
+                    With Selection
+                        .HorizontalAlignment = xlRight
+                    End With
+                    MyBook1.Sheets(1).Cells(2, x + 4) = Application.WorksheetFunction.Sum(MyBook1.Sheets(1).Range(MyBook1.Sheets(1).Cells(4, x + 4), MyBook1.Sheets(1).Cells(MyBook1.Sheets(1).[D65536].End(xlUp).Row, x + 4)))
+                    MyBook1.Sheets(1).Cells(1, x + 4) = Application.WorksheetFunction.Sum(MyBook1.Sheets(1).Range(MyBook1.Sheets(1).Cells(4, x + 3), MyBook1.Sheets(1).Cells(MyBook1.Sheets(1).[D65536].End(xlUp).Row, x + 3)))
+                    
+    'Add dark grey background to AMT column
+                    MyBook1.Sheets(1).Range(MyBook1.Sheets(1).Cells(3, x + 4), MyBook1.Sheets(1).Cells(MyBook1.Sheets(1).[D65536].End(xlUp).Row, x + 4)).Select
+                    With Selection.Interior
+                    .ThemeColor = xlThemeColorDark1
+                    .TintAndShade = -0.349986266670736
+                    End With
+                    With Selection.Font
+                        .ThemeColor = xlThemeColorDark1
+                        .TintAndShade = 0
+                    End With
+                                       
+                Loop While Not rng1t Is Nothing And rng1t.Address <> address1 And Not rng2t Is Nothing And rng2t.Address <> address2 And Not rng3t Is Nothing And rng3t.Address <> address3 And Not rng4t Is Nothing And rng4t.Address <> address4
+
+            End If
+        End If
+        MyBook2.Close
+    Next i
+
+    'Check cluster name in row 1 and add thick border
+    For i = 1 To MyBook1.Sheets(1).Cells(3, Columns.Count).End(xlToLeft).Column
+        If MyBook1.Sheets(1).Cells(1, i).Value <> "" Then
+            MyBook1.Sheets(1).Range(MyBook1.Sheets(1).Cells(1, i), MyBook1.Sheets(1).Cells(MyBook1.Sheets(1).[D65536].End(xlUp).Row, i)).Select
+            If IsNumeric(MyBook1.Sheets(1).Cells(1, i).Text) Then
+            Else
+                With Selection.Borders(xlEdgeLeft)
+                    .Weight = xlThick
+                End With
+            End If
+        End If
+    Next i
+    
+    MyBook1.Sheets(1).Range(MyBook1.Sheets(1).Cells(1, i - 1), MyBook1.Sheets(1).Cells(MyBook1.Sheets(1).[D65536].End(xlUp).Row, i - 1)).Select
+    With Selection.Borders(xlEdgeRight)
+        .Weight = xlThick
+    End With
+
+    'Save QAP files in the same folder as AV file
+MyBook1.SaveAs MyBook1.Path & "\QAP_" & Format(Now, "yyyy-mm-dd")
+MyBook1.Close False
+End Sub
